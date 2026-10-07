@@ -1,0 +1,35 @@
+model Supplier {
+  id            BigInt   @id @default(autoincrement())
+  name          String   @db.VarChar(150)
+  contactPerson String?  @map("contact_person") @db.VarChar(100)
+  phone         String?  @db.VarChar(30)
+  address       String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  rawMaterials RawMaterial[]
+
+  @@map("suppliers")
+}
+
+model RawMaterial {
+  id             BigInt    @id @default(autoincrement())
+  supplierId     BigInt?   @map("supplier_id")
+  name           String    @db.VarChar(150)
+  unit           String    @db.VarChar(20)
+  stock          Decimal   @default(0.000) @db.Decimal(12, 3)
+  costPerUnit    Decimal   @default(0.00) @map("cost_per_unit") @db.Decimal(15, 2)
+  minStockAlert  Decimal   @default(0.000) @map("min_stock_alert") @db.Decimal(12, 3)
+  productionDate DateTime? @map("production_date") @db.Date
+  expDate        DateTime? @map("exp_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  @@index([supplierId], map: "idx_raw_materials_supplier_id")
+  @@index([name], map: "idx_raw_materials_name")
+  @@index([stock], map: "idx_raw_materials_stock")
+  @@index([expDate], map: "idx_raw_materials_exp_date")
+  @@map("raw_materials")
+}
