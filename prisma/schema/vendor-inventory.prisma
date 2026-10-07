@@ -25,11 +25,25 @@ model RawMaterial {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplier    Supplier?    @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  recipeItems RecipeItem[]
 
   @@index([supplierId], map: "idx_raw_materials_supplier_id")
   @@index([name], map: "idx_raw_materials_name")
   @@index([stock], map: "idx_raw_materials_stock")
   @@index([expDate], map: "idx_raw_materials_exp_date")
   @@map("raw_materials")
+}
+
+
+model RecipeItem {
+  id               BigInt  @id @default(autoincrement())
+  productId        BigInt  @map("product_id")
+  rawMaterialId    BigInt  @map("raw_material_id")
+  quantityRequired Decimal @map("quantity_required") @db.Decimal(12, 3)
+  
+  rawMaterial RawMaterial @relation(fields: [rawMaterialId], references: [id], onDelete: Restrict)
+
+  @@unique([productId, rawMaterialId], map: "uq_recipe_product_material")
+  @@map("recipe_items")
 }
