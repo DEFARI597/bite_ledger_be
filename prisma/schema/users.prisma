@@ -44,7 +44,8 @@ model User {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  role        Role         @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  productions Production[]
 
   @@index([roleId], map: "idx_users_role_id")
   @@index([email], map: "idx_users_email")

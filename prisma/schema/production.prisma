@@ -1,0 +1,33 @@
+model Product {
+  id           BigInt   @id @default(autoincrement())
+  name         String   @db.VarChar(150)
+  category     String   @db.VarChar(50)
+  sellingPrice Decimal  @default(0.00) @map("selling_price") @db.Decimal(15, 2)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  recipeItems RecipeItem[]
+  productions Production[]
+
+  @@index([category], map: "idx_products_category")
+  @@index([isActive], map: "idx_products_is_active")
+  @@map("products")
+}
+
+model Production {
+  id               BigInt   @id @default(autoincrement())
+  userId           BigInt   @map("user_id")
+  productId        BigInt   @map("product_id")
+  quantityProduced Int      @map("quantity_produced")
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([userId], map: "idx_production_user_id")
+  @@index([productId], map: "idx_production_product_id")
+  @@index([createdAt(sort: Desc)], map: "idx_production_created_at")
+  @@map("production")
+}
