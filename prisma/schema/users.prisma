@@ -46,6 +46,7 @@ model User {
 
   role        Role         @relation(fields: [roleId], references: [id], onDelete: Restrict)
   productions Production[]
+  orders      Order[]
 
   @@index([roleId], map: "idx_users_role_id")
   @@index([email], map: "idx_users_email")

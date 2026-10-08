@@ -1,0 +1,34 @@
+model Order {
+  id            BigInt   @id @default(autoincrement())
+  userId        BigInt   @map("user_id")
+  totalAmount   Decimal  @default(0.00) @map("total_amount") @db.Decimal(15, 2)
+  paymentMethod String   @map("payment_method") @db.VarChar(20)
+  status        String   @default("completed") @db.VarChar(20)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  orderItems OrderItem[]
+
+  @@index([userId], map: "idx_orders_user_id")
+  @@index([status], map: "idx_orders_status")
+  @@index([paymentMethod], map: "idx_orders_payment_method")
+  @@index([createdAt(sort: Desc)], map: "idx_orders_created_at")
+  @@map("orders")
+}
+
+model OrderItem {
+  id        BigInt  @id @default(autoincrement())
+  orderId   BigInt  @map("order_id")
+  productId BigInt  @map("product_id")
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(15, 2)
+  unitCogs  Decimal @map("unit_cogs") @db.Decimal(15, 2)
+  subtotal  Decimal @default(dbgenerated("(quantity * unit_price)")) @map("subtotal") @db.Decimal(15, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId], map: "idx_order_items_order_id")
+  @@index([productId], map: "idx_order_items_product_id")
+  @@map("order_items")
+}

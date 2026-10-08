@@ -9,6 +9,7 @@ model Product {
 
   recipeItems RecipeItem[]
   productions Production[]
+  orderItems  OrderItem[]
 
   @@index([category], map: "idx_products_category")
   @@index([isActive], map: "idx_products_is_active")
