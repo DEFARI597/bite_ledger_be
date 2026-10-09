@@ -69,7 +69,6 @@ module.exports = {
   findUserByEmail,
   findUserById,
   findRoleByName,
-  createUser,
   findUsers,
   countUsers,
   updateUser,
