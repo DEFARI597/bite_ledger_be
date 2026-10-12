@@ -20,6 +20,22 @@ const login = async (req, res) => {
   }
 };
 
+
+const getMe = async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const user = await authService.getMe(userId);
+    return sendSuccess(res, user, "User profile retrieved successfully", 200);
+  } catch (error) {
+    if (error.message === "User not found") {
+      return sendError(res, error.message, 404);
+    }
+    console.error("[Auth Controller Error]:", error);
+    return sendError(res, "Internal server error", 500);
+  }
+};
+
 module.exports = {
+  getMe,
   login
 };

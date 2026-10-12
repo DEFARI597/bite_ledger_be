@@ -43,6 +43,28 @@ const login = async (email, password) => {
   };
 };
 
+
+const getMe = async (userId) => {
+  const user = await userRepository.findUserById(BigInt(userId));
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const roleName = user.role ? user.role.name : null;
+  const permissions = user.role && user.role.permissions
+    ? user.role.permissions.map(p => p.permission.name)
+    : [];
+
+  return {
+    id: user.id.toString(),
+    email: user.email,
+    name: user.name,
+    role: roleName,
+    permissions
+  };
+};
+
 module.exports = {
+  getMe,
   login
 };
