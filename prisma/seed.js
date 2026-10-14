@@ -86,7 +86,8 @@ async function main() {
     { roleName: 'kitchen', name: 'Kitchen Staff', email: 'kitchen@example.com' },
   ];
 
-  const defaultPassword = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+  const sha = require('crypto').createHash('sha256').update('password').digest('hex');
+  const defaultPassword = require('bcryptjs').hashSync(sha, 10);
 
   for (const u of usersData) {
     const role = getRole(u.roleName);
@@ -95,6 +96,7 @@ async function main() {
       update: {
         roleId: role.id,
         name: u.name,
+        password: defaultPassword,
       },
       create: {
         roleId: role.id,
