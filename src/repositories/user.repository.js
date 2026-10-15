@@ -65,10 +65,32 @@ const softDeleteUser = async (id) => {
   });
 };
 
+const createUser = async (data) => {
+  return prisma.user.create({
+    data,
+    include: { role: true }
+  });
+};
+
+const findRoleById = async (id) => {
+  return prisma.role.findUnique({
+    where: { id }
+  });
+};
+
+const findAllRoles = async () => {
+  return prisma.role.findMany({
+    orderBy: { id: 'asc' }
+  });
+};
+
 module.exports = {
   findUserByEmail,
   findUserById,
   findRoleByName,
+  findRoleById,
+  findAllRoles,
+  createUser,
   findUsers,
   countUsers,
   updateUser,
