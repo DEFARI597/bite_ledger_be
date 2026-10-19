@@ -3,6 +3,9 @@ const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
+const supplierRoutes = require('./routes/supplier.routes');
+const rawMaterialRoutes = require('./routes/rawMaterial.routes');
+const recipeItemRoutes = require('./routes/recipeItem.routes');
 
 dotenv.config({ path: require("path").resolve(__dirname, "../.env") });
 
@@ -39,7 +42,17 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/suppliers', supplierRoutes);
+app.use('/api/v1/raw-materials', rawMaterialRoutes);
+app.use('/api/v1/recipes', recipeItemRoutes);
 
-const server = app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+
+let server;
+if (require.main === module) {
+    server = app.listen(PORT, () => {
+        console.log(`Server is running on http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
+
