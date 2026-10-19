@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const supplierRoutes = require('./routes/supplier.routes');
 const rawMaterialRoutes = require('./routes/rawMaterial.routes');
+const productRoutes = require('./routes/product.routes');
 const recipeItemRoutes = require('./routes/recipeItem.routes');
 
 dotenv.config({ path: require("path").resolve(__dirname, "../.env") });
@@ -44,6 +45,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/suppliers', supplierRoutes);
 app.use('/api/v1/raw-materials', rawMaterialRoutes);
+app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/recipes', recipeItemRoutes);
 
 
