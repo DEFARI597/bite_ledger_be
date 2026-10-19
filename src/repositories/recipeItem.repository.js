@@ -1,5 +1,39 @@
 const prisma = require('../config/database');
 
+const findRecipeItemsByRawMaterialId = async (rawMaterialId) => {
+  return prisma.recipeItem.findMany({
+    where: { rawMaterialId },
+    include: {
+      rawMaterial: true,
+      product: true
+    },
+    orderBy: { id: 'asc' }
+  });
+};
+
+const findAllRecipeItems = async ({ skip = 0, take = 20, productId, rawMaterialId } = {}) => {
+  const where = {};
+  if (productId) where.productId = productId;
+  if (rawMaterialId) where.rawMaterialId = rawMaterialId;
+
+  const [total, items] = await Promise.all([
+    prisma.recipeItem.count({ where }),
+    prisma.recipeItem.findMany({
+      where,
+      skip,
+      take,
+      include: {
+        rawMaterial: true,
+        product: true
+      },
+      orderBy: { id: 'asc' }
+    })
+  ]);
+
+  return { total, items };
+};
+
+
 const findRecipeItemsByProductId = async (productId) => {
   return prisma.recipeItem.findMany({
     where: { productId },
@@ -86,27 +120,15 @@ const syncProductRecipe = async (productId, items) => {
   });
 };
 
-const findProductById = async (productId) => {
-  return prisma.product.findUnique({
-    where: { id: productId }
-  });
-};
-
-const findAllProducts = async () => {
-  return prisma.product.findMany({
-    orderBy: { id: 'asc' }
-  });
-};
-
 module.exports = {
   findRecipeItemsByProductId,
   findRecipeItemById,
   findRecipeItem,
+  findRecipeItemsByRawMaterialId,
+  findAllRecipeItems,
   createRecipeItem,
   updateRecipeItem,
   deleteRecipeItem,
-  syncProductRecipe,
-  findProductById,
-  findAllProducts
+  syncProductRecipe
 };
 

@@ -133,18 +133,45 @@ const syncProductRecipe = async (req, res) => {
   }
 };
 
-const getProducts = async (req, res) => {
+const getRecipeItems = async (req, res) => {
   try {
-    const products = await recipeItemService.getProducts();
-    return sendSuccess(res, products, 'Products retrieved successfully', 200);
+    const { page, limit, productId, rawMaterialId } = req.query;
+    const result = await recipeItemService.getRecipeItems({
+      page,
+      limit,
+      productId,
+      rawMaterialId
+    });
+    return sendSuccess(res, result, 'Recipe items retrieved successfully', 200);
   } catch (error) {
-    console.error('[Recipe Controller Error - getProducts]:', error);
+    if (error.message === 'Invalid product ID' || error.message === 'Invalid raw material ID') {
+      return sendError(res, error.message, 400);
+    }
+    console.error('[Recipe Controller Error - getRecipeItems]:', error);
+    return sendError(res, error.message || 'Internal server error', 500);
+  }
+};
+
+const getRecipesByRawMaterialId = async (req, res) => {
+  try {
+    const { rawMaterialId } = req.params;
+    const result = await recipeItemService.getRecipesByRawMaterialId(rawMaterialId);
+    return sendSuccess(res, result, 'Raw material recipe usage retrieved successfully', 200);
+  } catch (error) {
+    if (error.message === 'Raw material not found') {
+      return sendError(res, error.message, 404);
+    }
+    if (error.message === 'Invalid raw material ID') {
+      return sendError(res, error.message, 400);
+    }
+    console.error('[Recipe Controller Error - getRecipesByRawMaterialId]:', error);
     return sendError(res, error.message || 'Internal server error', 500);
   }
 };
 
 module.exports = {
-  getProducts,
+  getRecipeItems,
+  getRecipesByRawMaterialId,
   getRecipeByProductId,
   getRecipeItemById,
   addRecipeItem,

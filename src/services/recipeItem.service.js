@@ -1,5 +1,6 @@
 const recipeItemRepository = require('../repositories/recipeItem.repository');
 const rawMaterialRepository = require('../repositories/rawMaterial.repository');
+const productRepository = require('../repositories/product.repository');
 
 const formatRecipeItemResponse = (item) => {
   if (!item) return null;
@@ -30,7 +31,7 @@ const getRecipeByProductId = async (productId) => {
     throw new Error('Invalid product ID');
   }
 
-  const product = await recipeItemRepository.findProductById(parsedProductId);
+  const product = await productRepository.findProductById(parsedProductId);
   if (!product) {
     throw new Error('Product not found');
   }
@@ -94,7 +95,7 @@ const addRecipeItem = async ({ productId, rawMaterialId, quantityRequired }) => 
     throw new Error('Quantity required must be a number greater than 0');
   }
 
-  const product = await recipeItemRepository.findProductById(parsedProductId);
+  const product = await productRepository.findProductById(parsedProductId);
   if (!product) {
     throw new Error('Product not found');
   }
@@ -171,7 +172,7 @@ const syncProductRecipe = async (productId, items = []) => {
     throw new Error('Invalid product ID');
   }
 
-  const product = await recipeItemRepository.findProductById(parsedProductId);
+  const product = await productRepository.findProductById(parsedProductId);
   if (!product) {
     throw new Error('Product not found');
   }
@@ -229,19 +230,76 @@ const syncProductRecipe = async (productId, items = []) => {
   };
 };
 
-const getProducts = async () => {
-  const products = await recipeItemRepository.findAllProducts();
-  return products.map((p) => ({
-    id: p.id.toString(),
-    name: p.name,
-    category: p.category,
-    sellingPrice: Number(p.sellingPrice),
-    isActive: p.isActive
-  }));
+const getRecipeItems = async ({ page = 1, limit = 20, productId, rawMaterialId } = {}) => {
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+  const skip = (pageNum - 1) * limitNum;
+
+  let parsedProductId;
+  if (productId) {
+    try {
+      parsedProductId = BigInt(productId);
+    } catch {
+      throw new Error('Invalid product ID');
+    }
+  }
+
+  let parsedRawMaterialId;
+  if (rawMaterialId) {
+    try {
+      parsedRawMaterialId = BigInt(rawMaterialId);
+    } catch {
+      throw new Error('Invalid raw material ID');
+    }
+  }
+
+  const { total, items } = await recipeItemRepository.findAllRecipeItems({
+    skip,
+    take: limitNum,
+    productId: parsedProductId,
+    rawMaterialId: parsedRawMaterialId
+  });
+
+  return {
+    items: items.map(formatRecipeItemResponse),
+    pagination: {
+      total,
+      totalPages: Math.ceil(total / limitNum),
+      currentPage: pageNum,
+      limit: limitNum
+    }
+  };
+};
+
+const getRecipesByRawMaterialId = async (rawMaterialId) => {
+  let parsedMaterialId;
+  try {
+    parsedMaterialId = BigInt(rawMaterialId);
+  } catch {
+    throw new Error('Invalid raw material ID');
+  }
+
+  const material = await rawMaterialRepository.findRawMaterialById(parsedMaterialId);
+  if (!material) {
+    throw new Error('Raw material not found');
+  }
+
+  const items = await recipeItemRepository.findRecipeItemsByRawMaterialId(parsedMaterialId);
+
+  return {
+    rawMaterialId: material.id.toString(),
+    rawMaterialName: material.name,
+    unit: material.unit,
+    stock: Number(material.stock),
+    costPerUnit: Number(material.costPerUnit),
+    usedInProductsCount: items.length,
+    products: items.map(formatRecipeItemResponse)
+  };
 };
 
 module.exports = {
-  getProducts,
+  getRecipeItems,
+  getRecipesByRawMaterialId,
   getRecipeByProductId,
   getRecipeItemById,
   addRecipeItem,

@@ -7,8 +7,9 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
-router.get('/products', authorizeRoles('super_admin', 'admin', 'kitchen'), recipeItemController.getProducts);
+router.get('/', authorizeRoles('super_admin', 'admin', 'kitchen'), recipeItemController.getRecipeItems);
 router.get('/product/:productId', authorizeRoles('super_admin', 'admin', 'kitchen'), recipeItemController.getRecipeByProductId);
+router.get('/raw-material/:rawMaterialId', authorizeRoles('super_admin', 'admin', 'kitchen'), recipeItemController.getRecipesByRawMaterialId);
 router.get('/:id', authorizeRoles('super_admin', 'admin', 'kitchen'), recipeItemController.getRecipeItemById);
 
 router.post('/', authorizeRoles('super_admin', 'admin'), recipeItemController.addRecipeItem);
