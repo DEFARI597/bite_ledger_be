@@ -1,4 +1,5 @@
 const productRepository = require('../repositories/product.repository');
+const { deleteFile } = require('../utils/file.util');
 
 const formatProductResponse = (product) => {
   if (!product) return null;
@@ -9,6 +10,7 @@ const formatProductResponse = (product) => {
     name: product.name,
     category: product.category,
     sellingPrice,
+    imageUrl: product.imageUrl || null,
     isActive: product.isActive,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt
@@ -89,7 +91,7 @@ const getProductById = async (id) => {
   return formatProductResponse(product);
 };
 
-const createProduct = async ({ name, category, sellingPrice, isActive = true }) => {
+const createProduct = async ({ name, category, sellingPrice, isActive = true, file }) => {
   if (!name || !name.trim()) {
     throw new Error('Product name is required');
   }
@@ -102,17 +104,25 @@ const createProduct = async ({ name, category, sellingPrice, isActive = true }) 
     throw new Error('Selling price must be a valid number greater than or equal to 0');
   }
 
+  let parsedIsActive = true;
+  if (isActive !== undefined && isActive !== null) {
+    parsedIsActive = typeof isActive === 'boolean' ? isActive : isActive === 'true';
+  }
+
+  const imageUrl = file ? `/uploads/products/${file.filename}` : null;
+
   const newProduct = await productRepository.createProduct({
     name: name.trim(),
     category: category.trim(),
     sellingPrice: parsedPrice,
-    isActive: typeof isActive === 'boolean' ? isActive : true
+    imageUrl,
+    isActive: parsedIsActive
   });
 
   return formatProductResponse(newProduct);
 };
 
-const updateProduct = async (id, { name, category, sellingPrice, isActive }) => {
+const updateProduct = async (id, { name, category, sellingPrice, isActive, file, removeImage }) => {
   let productId;
   try {
     productId = BigInt(id);
@@ -149,6 +159,19 @@ const updateProduct = async (id, { name, category, sellingPrice, isActive }) => 
     updateData.isActive = typeof isActive === 'boolean' ? isActive : isActive === 'true';
   }
 
+  // Handle image replacement or removal
+  if (file) {
+    if (existingProduct.imageUrl) {
+      deleteFile(existingProduct.imageUrl);
+    }
+    updateData.imageUrl = `/uploads/products/${file.filename}`;
+  } else if (removeImage === true || removeImage === 'true') {
+    if (existingProduct.imageUrl) {
+      deleteFile(existingProduct.imageUrl);
+    }
+    updateData.imageUrl = null;
+  }
+
   const updatedProduct = await productRepository.updateProduct(productId, updateData);
   return formatProductResponse(updatedProduct);
 };
@@ -167,6 +190,12 @@ const deleteProduct = async (id) => {
   }
 
   await productRepository.deleteProduct(productId);
+
+  // Clean up image file if product had an image
+  if (existingProduct.imageUrl) {
+    deleteFile(existingProduct.imageUrl);
+  }
+
   return { message: 'Product deleted successfully' };
 };
 

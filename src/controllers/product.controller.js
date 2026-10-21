@@ -1,5 +1,6 @@
 const productService = require('../services/product.service');
 const { sendSuccess, sendError } = require('../utils/response.util');
+const { deleteFile } = require('../utils/file.util');
 
 const getProducts = async (req, res) => {
   try {
@@ -42,10 +43,15 @@ const createProduct = async (req, res) => {
       name,
       category,
       sellingPrice,
-      isActive
+      isActive,
+      file: req.file
     });
     return sendSuccess(res, product, 'Product created successfully', 201);
   } catch (error) {
+    if (req.file) {
+      deleteFile(`/uploads/products/${req.file.filename}`);
+    }
+
     if (
       error.message === 'Product name is required' ||
       error.message === 'Category is required' ||
@@ -61,15 +67,21 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category, sellingPrice, isActive } = req.body;
+    const { name, category, sellingPrice, isActive, removeImage } = req.body;
     const product = await productService.updateProduct(id, {
       name,
       category,
       sellingPrice,
-      isActive
+      isActive,
+      file: req.file,
+      removeImage
     });
     return sendSuccess(res, product, 'Product updated successfully', 200);
   } catch (error) {
+    if (req.file) {
+      deleteFile(`/uploads/products/${req.file.filename}`);
+    }
+
     if (error.message === 'Product not found') {
       return sendError(res, error.message, 404);
     }
