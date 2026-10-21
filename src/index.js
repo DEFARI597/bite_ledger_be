@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const supplierRoutes = require('./routes/supplier.routes');
@@ -8,7 +9,7 @@ const rawMaterialRoutes = require('./routes/rawMaterial.routes');
 const productRoutes = require('./routes/product.routes');
 const recipeItemRoutes = require('./routes/recipeItem.routes');
 
-dotenv.config({ path: require("path").resolve(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 BigInt.prototype.toJSON = function () {
     return this.toString();
@@ -19,6 +20,7 @@ const PORT = process.env.PORT;
 
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use((req, res, next) => {
     const origin = req.headers.origin;
