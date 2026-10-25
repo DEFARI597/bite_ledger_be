@@ -8,6 +8,7 @@ const supplierRoutes = require('./routes/supplier.routes');
 const rawMaterialRoutes = require('./routes/rawMaterial.routes');
 const productRoutes = require('./routes/product.routes');
 const recipeItemRoutes = require('./routes/recipeItem.routes');
+const orderRoutes = require('./routes/order.routes');
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
@@ -20,7 +21,7 @@ const PORT = process.env.PORT;
 
 app.use(express.json());
 app.use(cookieParser());
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), { maxAge: '7d' }));
 
 app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -49,6 +50,7 @@ app.use('/api/v1/suppliers', supplierRoutes);
 app.use('/api/v1/raw-materials', rawMaterialRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/recipes', recipeItemRoutes);
+app.use('/api/v1/orders', orderRoutes);
 
 
 let server;
