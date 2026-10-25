@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const sharp = require('sharp');
 const { sendError } = require('../utils/response.util');
 
 const PRODUCT_UPLOADS_DIR = path.resolve(__dirname, '../../uploads/products');
@@ -9,19 +10,7 @@ if (!fs.existsSync(PRODUCT_UPLOADS_DIR)) {
   fs.mkdirSync(PRODUCT_UPLOADS_DIR, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    if (!fs.existsSync(PRODUCT_UPLOADS_DIR)) {
-      fs.mkdirSync(PRODUCT_UPLOADS_DIR, { recursive: true });
-    }
-    cb(null, PRODUCT_UPLOADS_DIR);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `product-${uniqueSuffix}${ext}`);
-  }
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
@@ -39,24 +28,57 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024
+    fileSize: 10 * 1024 * 1024
   }
 });
 
 const uploadProductImage = (req, res, next) => {
   const singleUpload = upload.single('image');
 
-  singleUpload(req, res, (err) => {
+  singleUpload(req, res, async (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return sendError(res, 'File size exceeds limit. Maximum allowed size is 5MB.', 400);
+          return sendError(res, 'File size exceeds limit. Maximum allowed size is 10MB.', 400);
         }
         return sendError(res, `Upload error: ${err.message}`, 400);
       }
       return sendError(res, err.message, 400);
     }
-    next();
+
+    if (!req.file) {
+      return next();
+    }
+
+    try {
+      if (!fs.existsSync(PRODUCT_UPLOADS_DIR)) {
+        fs.mkdirSync(PRODUCT_UPLOADS_DIR, { recursive: true });
+      }
+
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const filename = `product-${uniqueSuffix}.webp`;
+      const outputPath = path.join(PRODUCT_UPLOADS_DIR, filename);
+
+      const compressedBuffer = await sharp(req.file.buffer)
+        .resize(800, 800, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .webp({ quality: 80 })
+        .toBuffer();
+
+      await fs.promises.writeFile(outputPath, compressedBuffer);
+
+      req.file.filename = filename;
+      req.file.path = outputPath;
+      req.file.mimetype = 'image/webp';
+      req.file.size = compressedBuffer.length;
+
+      next();
+    } catch (compressionErr) {
+      console.error('[Upload Middleware Error - Sharp Compression]:', compressionErr);
+      return sendError(res, 'Gagal memproses dan mengompres gambar produk.', 500);
+    }
   });
 };
 
