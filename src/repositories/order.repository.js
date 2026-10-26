@@ -315,9 +315,19 @@ const aggregateOrderStats = async (where = {}) => {
         createdAt: true,
         orderItems: {
           select: {
+            productId: true,
             quantity: true,
+            unitPrice: true,
             unitCogs: true,
-            subtotal: true
+            subtotal: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+                sellingPrice: true
+              }
+            }
           }
         }
       }
@@ -334,20 +344,72 @@ const aggregateOrderStats = async (where = {}) => {
   let totalCogs = 0;
   let totalItemsSold = 0;
   const paymentMethodBreakdown = {};
+  const paymentMethodDetails = {};
+  const dailyMap = {};
+  const productMap = {};
 
   for (const order of orders) {
     const isCompleted = order.status === 'completed';
     const amount = Number(order.totalAmount);
+    const method = order.paymentMethod || 'other';
 
-    paymentMethodBreakdown[order.paymentMethod] =
-      (paymentMethodBreakdown[order.paymentMethod] || 0) + 1;
+    paymentMethodBreakdown[method] =
+      (paymentMethodBreakdown[method] || 0) + 1;
+
+    if (!paymentMethodDetails[method]) {
+      paymentMethodDetails[method] = { count: 0, totalAmount: 0 };
+    }
+    paymentMethodDetails[method].count += 1;
+    if (isCompleted) {
+      paymentMethodDetails[method].totalAmount += amount;
+    }
 
     if (isCompleted) {
       totalRevenue += amount;
+      let orderCogs = 0;
+
       for (const item of order.orderItems) {
         totalItemsSold += item.quantity;
-        totalCogs += item.quantity * Number(item.unitCogs);
+        const cogs = item.quantity * Number(item.unitCogs || 0);
+        const itemRev = Number(item.subtotal) || (item.quantity * Number(item.unitPrice || 0));
+        orderCogs += cogs;
+        totalCogs += cogs;
+
+        const pId = item.productId ? item.productId.toString() : 'unknown';
+        if (!productMap[pId]) {
+          productMap[pId] = {
+            productId: pId,
+            name: item.product?.name || `Product #${pId}`,
+            category: item.product?.category || 'Lainnya',
+            sellingPrice: Number(item.unitPrice || item.product?.sellingPrice || 0),
+            unitCogs: Number(item.unitCogs || 0),
+            quantitySold: 0,
+            totalRevenue: 0,
+            totalCogs: 0,
+            grossProfit: 0,
+            marginPercent: 0
+          };
+        }
+        productMap[pId].quantitySold += item.quantity;
+        productMap[pId].totalRevenue += itemRev;
+        productMap[pId].totalCogs += cogs;
+        productMap[pId].grossProfit += (itemRev - cogs);
       }
+
+      const dateKey = order.createdAt.toISOString().slice(0, 10);
+      if (!dailyMap[dateKey]) {
+        dailyMap[dateKey] = {
+          date: dateKey,
+          revenue: 0,
+          cogs: 0,
+          profit: 0,
+          ordersCount: 0
+        };
+      }
+      dailyMap[dateKey].revenue += amount;
+      dailyMap[dateKey].cogs += orderCogs;
+      dailyMap[dateKey].profit += (amount - orderCogs);
+      dailyMap[dateKey].ordersCount += 1;
     }
   }
 
@@ -363,6 +425,14 @@ const aggregateOrderStats = async (where = {}) => {
     return acc;
   }, {});
 
+  const dailyTrends = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+  const productPerformance = Object.values(productMap)
+    .map(p => ({
+      ...p,
+      marginPercent: p.totalRevenue > 0 ? Number(((p.grossProfit / p.totalRevenue) * 100).toFixed(2)) : 0
+    }))
+    .sort((a, b) => b.totalRevenue - a.totalRevenue);
+
   return {
     period: {
       startDate: where.createdAt?.gte || null,
@@ -375,7 +445,10 @@ const aggregateOrderStats = async (where = {}) => {
     grossProfitMargin: `${grossProfitMargin}%`,
     totalItemsSold,
     statusBreakdown,
-    paymentMethodBreakdown
+    paymentMethodBreakdown,
+    paymentMethodDetails,
+    dailyTrends,
+    productPerformance
   };
 };
 
