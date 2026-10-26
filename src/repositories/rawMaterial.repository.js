@@ -82,7 +82,7 @@ const countRecipeItemsByRawMaterialId = async (rawMaterialId) => {
 };
 
 const findLowStockRawMaterialIds = async () => {
-  const rows = await prisma.$queryRaw`SELECT id FROM raw_materials WHERE stock <= min_stock_alert`;
+  const rows = await prisma.$queryRaw`SELECT id FROM raw_materials WHERE stock <= min_stock_alert OR stock <= 0`;
   return rows.map((r) => r.id);
 };
 
