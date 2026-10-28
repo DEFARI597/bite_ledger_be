@@ -42,6 +42,13 @@ const findAllProducts = async ({ skip = 0, take = 20, search, category, isActive
       where,
       skip,
       take,
+      include: {
+        recipeItems: {
+          include: {
+            rawMaterial: true
+          }
+        }
+      },
       orderBy: { id: 'asc' }
     })
   ]);

@@ -20,15 +20,26 @@ const formatProductResponse = (product) => {
     const formattedRecipe = product.recipeItems.map((item) => {
       const quantityRequired = Number(item.quantityRequired);
       const costPerUnit = item.rawMaterial ? Number(item.rawMaterial.costPerUnit) : 0;
+      const stock = item.rawMaterial ? Number(item.rawMaterial.stock) : 0;
+      const minStockAlert = item.rawMaterial ? Number(item.rawMaterial.minStockAlert) : 0;
       const itemCost = Number((quantityRequired * costPerUnit).toFixed(2));
+      const isInsufficient = stock < quantityRequired;
+      const isLowStock = stock <= minStockAlert;
+      const maxPortions = quantityRequired > 0 ? Math.floor(stock / quantityRequired) : 0;
+
       return {
         id: item.id.toString(),
         rawMaterialId: item.rawMaterialId.toString(),
         rawMaterialName: item.rawMaterial ? item.rawMaterial.name : undefined,
         unit: item.rawMaterial ? item.rawMaterial.unit : undefined,
+        stock,
+        minStockAlert,
         costPerUnit,
         quantityRequired,
-        itemCost
+        itemCost,
+        isInsufficient,
+        isLowStock,
+        maxPortions
       };
     });
 
@@ -36,11 +47,52 @@ const formatProductResponse = (product) => {
       formattedRecipe.reduce((acc, curr) => acc + (curr.itemCost || 0), 0).toFixed(2)
     );
 
+    const hasRecipe = formattedRecipe.length > 0;
+    const emptyIngredients = formattedRecipe.filter((i) => i.isInsufficient);
+    const lowStockIngredients = formattedRecipe.filter((i) => i.isLowStock && !i.isInsufficient);
+
+    // Out of stock if:
+    // 1) Any recipe ingredient has stock < quantityRequired (empty / insufficient), OR
+    // 2) Any recipe ingredient has stock <= minStockAlert (stok menipis)
+    const isOutOfStock = hasRecipe && (emptyIngredients.length > 0 || lowStockIngredients.length > 0);
+
+    let stockStatus = 'AVAILABLE';
+    if (isOutOfStock) {
+      stockStatus = emptyIngredients.length > 0 ? 'EMPTY' : 'LOW_STOCK';
+    }
+
+    const maxPortionsAvailable = hasRecipe
+      ? Math.min(...formattedRecipe.map((i) => i.maxPortions))
+      : null;
+
     response.recipe = {
       items: formattedRecipe,
       totalRecipeCost,
-      estimatedGrossProfit: Number((sellingPrice - totalRecipeCost).toFixed(2))
+      estimatedGrossProfit: Number((sellingPrice - totalRecipeCost).toFixed(2)),
+      isOutOfStock,
+      stockStatus,
+      maxPortionsAvailable,
+      emptyIngredients: emptyIngredients.map((i) => ({
+        rawMaterialName: i.rawMaterialName,
+        required: i.quantityRequired,
+        available: i.stock,
+        unit: i.unit
+      })),
+      lowStockIngredients: lowStockIngredients.map((i) => ({
+        rawMaterialName: i.rawMaterialName,
+        available: i.stock,
+        minStockAlert: i.minStockAlert,
+        unit: i.unit
+      }))
     };
+
+    response.isOutOfStock = isOutOfStock;
+    response.stockStatus = stockStatus;
+    response.maxPortionsAvailable = maxPortionsAvailable;
+  } else {
+    response.isOutOfStock = false;
+    response.stockStatus = 'AVAILABLE';
+    response.maxPortionsAvailable = null;
   }
 
   return response;
